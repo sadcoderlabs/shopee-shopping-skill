@@ -18,6 +18,11 @@ function browserStep({ step, args, selectors }) {
   const correctPage = () => location.pathname === new URL(args.url).pathname;
   const checkProduct = () => correctPage() && title() === args.title && quantity() === String(args.quantity) && selected().length === args.variants.length && args.variants.every(v => selected().includes(v));
   if (step === 'login') return answer('ok');
+  if (step === 'search-ready') {
+    const input = one('searchInput'); const button = one('searchButton');
+    if (!input || !button || button.disabled || button.getAttribute('aria-disabled') === 'true') return answer('page_changed', { reason: '無法唯一確認搜尋欄與搜尋按鈕。' });
+    return answer('ready', { query: args.query, currentQuery: input.value, inputSelector: selectors.searchInput, buttonSelector: selectors.searchButton });
+  }
   if (step === 'results') {
     const seen = new Set(); const items = [];
     for (const el of all('results')) {
@@ -30,7 +35,13 @@ function browserStep({ step, args, selectors }) {
     }
     return items.length ? answer('ok', { items }) : answer('page_changed', { reason: '無法讀取商品結果。' });
   }
-  if (step === 'product') return one('productTitle') ? answer('ok', { title: title(), availableVariants: all('variantOptions').map(text), selectedVariants: selected(), quantity: quantity() }) : answer('page_changed');
+  if (step === 'product') {
+    if (!one('productTitle') || (selectors.price && !one('price'))) return answer('page_changed', { reason: '商品標題或價格無法唯一確認。' });
+    const section = heading => all('productSections').filter(el => text(el.querySelector('h2')) === heading);
+    const sectionText = heading => { const els = section(heading); return els.length === 1 ? text(els[0]).replace(new RegExp(`^${heading}\\s*`), '').slice(0, 6000) : null; };
+    const variantOptions = all('variantOptions').map(el => ({ label: text(el), disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'), selected: selected().includes(text(el)) }));
+    return answer('ok', { title: title(), price: text(one('price')) || null, description: sectionText('商品描述'), specifications: sectionText('商品規格'), variantOptions, availableVariants: variantOptions.filter(option => !option.disabled).map(option => option.label), selectedVariants: selected(), quantity: quantity() });
+  }
   if (step === 'select') {
     if (!correctPage() || title() !== args.title || !one('quantity') || (!args.variants.length && all('variantOptions').length)) return answer('page_changed', { reason: '商品、規格或數量欄位無法核對。' });
     const buttons = [...document.querySelectorAll('button,[role="button"]')].filter(visible);

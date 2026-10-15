@@ -1,11 +1,15 @@
 {
   "selectors": {
     "account": ".navbar__username",
+    "searchInput": "input[name='keyword'][role='combobox']",
+    "searchButton": "button[aria-label='search']",
     "results": "a[href*='-i.']",
     "productTitle": "h1",
+    "price": null,
+    "productSections": "section",
     "quantity": "input[role='spinbutton']",
-    "variantOptions": "button[aria-pressed]",
-    "selectedVariants": "button[aria-pressed='true']",
+    "variantOptions": "button[aria-pressed], button.selection-box-unselected, button.selection-box-selected",
+    "selectedVariants": "button[aria-pressed='true'], button.selection-box-selected",
     "add": null,
     "added": null,
     "cartRows": null,

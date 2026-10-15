@@ -73,6 +73,7 @@ export class Workflow {
     if (['search', 'open', 'cart'].includes(step)) {
       const url = step === 'search' ? `https://shopee.tw/search?keyword=${encodeURIComponent(args.query)}` : step === 'cart' ? 'https://shopee.tw/cart' : args.url;
       action = { type: 'native_browser', operation: 'navigate', url };
+      if (step === 'search' && this.state.mode !== 'none') action.preflight = { type: 'browser_script', access: 'readonly', script: makeScript('search-ready', args, this.selectors) };
     } else if (this.state.mode === 'none' || (writes.includes(step) && this.state.mode !== 'readwrite')) {
       action = { type: 'native_browser', operation: step, parameters: args, note: '先觀察原分頁，再使用宿主正式操作工具；不要執行未允許的腳本。' };
     } else {

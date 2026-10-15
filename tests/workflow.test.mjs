@@ -44,6 +44,21 @@ test('readonly 模式只對讀取產生腳本，寫入走宿主工具', async t 
   assert.equal(select.action.type, 'native_browser'); assert.equal(select.action.operation, 'select');
 });
 
+test('搜尋先產生唯讀腳本核對欄位，輸入與點擊交給宿主工具', async t => {
+  const { flow } = await fixture(t);
+  const plan = await flow.plan('search', { query: 'ipod mini' });
+  assert.equal(plan.action.preflight.type, 'browser_script');
+  assert.equal(plan.action.preflight.access, 'readonly');
+  const f = domFixture();
+  f.selectors.searchInput = '#search-input'; f.selectors.searchButton = '#search-button';
+  f.map['#search-input'] = [{ getClientRects: () => [1], value: '舊搜尋' }];
+  f.map['#search-button'] = [{ getClientRects: () => [1], getAttribute: () => null }];
+  const result = runInNewContext(makeScript('search-ready', { query: 'ipod mini' }, f.selectors), f.context);
+  assert.equal(result.outcome, 'ready'); assert.equal(result.currentQuery, '舊搜尋'); assert.equal(f.clicks(), 0);
+  f.map['#search-button'] = [];
+  assert.equal(runInNewContext(makeScript('search-ready', { query: 'ipod mini' }, f.selectors), f.context).outcome, 'page_changed');
+});
+
 test('沒有腳本介面的宿主仍用原生觀察，沒有啟動新瀏覽器', async t => {
   const { flow } = await fixture(t, 'none');
   const plan = await flow.plan('product');
@@ -167,6 +182,25 @@ test('頁面腳本：未登入或驗證時無操作', () => {
     const result = runInNewContext(makeScript('add', intent, f.selectors), f.context);
     assert.equal(result.outcome, options.challenge ? 'verification' : 'needs_login'); assert.equal(f.clicks(), 0);
   }
+});
+
+test('商品腳本讀取完整價格範圍、描述及規格，不混入其他區塊', () => {
+  const f = domFixture();
+  f.selectors.price = '#price'; f.selectors.productSections = 'section';
+  f.map['#price'] = [{ innerText: '$2,099 - $2,579', getClientRects: () => [1] }];
+  f.map['#variants'].push({ innerText: '藍色', getClientRects: () => [1], getAttribute: key => key === 'aria-disabled' ? 'true' : null });
+  const section = (heading, content) => ({ innerText: `${heading}\n${content}`, getClientRects: () => [1], querySelector: () => ({ innerText: heading }) });
+  f.map.section = [section('商品描述', '型號：iPod mini 2代'), section('商品規格', '商品保存狀況\n二手'), section('猜你喜歡', '其他商品')];
+  const result = runInNewContext(makeScript('product', {}, f.selectors), f.context);
+  assert.equal(result.outcome, 'ok'); assert.equal(result.price, '$2,099 - $2,579');
+  assert.equal(result.description, '型號：iPod mini 2代'); assert.equal(result.specifications, '商品保存狀況\n二手');
+  assert.deepEqual(Array.from(result.availableVariants), ['黑色']);
+  assert.equal(result.variantOptions[1].label, '藍色'); assert.equal(result.variantOptions[1].disabled, true);
+  assert.equal(f.clicks(), 0);
+  f.map.section.push(section('商品描述', '不能唯一確認'));
+  assert.equal(runInNewContext(makeScript('product', {}, f.selectors), f.context).description, null);
+  f.map['#price'] = [];
+  assert.equal(runInNewContext(makeScript('product', {}, f.selectors), f.context).outcome, 'page_changed');
 });
 
 test('頁面腳本：加入核對網址、規格、數量與按鈕，成功只點一次', () => {

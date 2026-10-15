@@ -23,6 +23,12 @@ node scripts/shop.mjs plan login
 - `browser_script`：將 `action.script` 交給宿主正式允許的頁面腳本介面。唯讀腳本不能用於點擊或輸入。
 - `native_browser`：依 `operation` 使用宿主正式的導航、觀察、輸入或點擊工具。先取得最新元素證據，不沿用過時索引。
 
+搜尋的原生操作可能帶有 `action.preflight`，須先執行其中的唯讀技能腳本。它核對登入、驗證狀態及唯一的搜尋欄與按鈕，回傳 `ready` 後才可輸入及點擊。宿主的頁面腳本僅允許唯讀時，這些輸入與點擊是必要的原生操作；結果解析與商品描述／規格仍執行 CLI 產生的技能腳本，不改用臨時解析程式。
+
+`product` 輸出 `price`、`description`、`specifications`、`availableVariants` 等欄位。`price` selector 須依實際主商品價格校準，避免讀到推薦商品或運費；保留整個價格範圍，不能把搜尋卡最低價視為所有規格的價格。描述與規格只讀取 `productSections` 中標題相符的區塊。欄位缺失或不唯一時不臆測內容。
+
+`variantOptions` 同時輸出各選項的 `label`、`disabled`、`selected`；`availableVariants` 排除停用選項。須比較原生瀏覽器的停用與選取狀態，不能只看選項文字；蝦皮可能用 `selection-box-selected`，沒有 `aria-pressed`。同一賣場可能混有機身和配件，列出價格範圍後仍須核對選定規格的價格。
+
 **一次操作只執行一次。** `plan` 會先落盤，結果未回報時不會再次產生操作。宿主失敗、超時或結果不明時，保留原分頁並 `handoff`，不能重送。
 
 唯讀解析有狹窄例外：若已用宿主觀察確認原頁面存在商品、沒有 CAPTCHA 或存取阻擋，且問題只在 selector 或版面判斷，可修正讀取腳本後重讀同一頁，將實際結果回報原本的讀取操作。這不允許再次導航、搜尋、加入、規格點擊或結帳。保留失敗紀錄，不以空結果推定沒有商品。
