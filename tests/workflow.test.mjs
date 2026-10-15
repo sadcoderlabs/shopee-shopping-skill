@@ -187,6 +187,30 @@ test('頁面腳本：結帳只能在購物車，不會誤點最後下單按鈕',
   assert.equal(runInNewContext(makeScript('checkout', {}, final.selectors), final.context).outcome, 'page_changed'); assert.equal(final.clicks(), 0);
 });
 
+test('接受蝦皮實際使用的商品短橫線與數字網址', () => {
+  assert.equal(urlOf('https://shopee.tw/Steam-Controller-i.158021068.53465028544?extraParams=test', true), 'https://shopee.tw/Steam-Controller-i.158021068.53465028544');
+});
+
+test('結果腳本能讀取一般商品連結並去除追蹤與重複', () => {
+  const f = domFixture({ pathname: '/search' });
+  f.selectors.results = '#results';
+  const link = (href, label) => ({ href, innerText: label, getClientRects: () => [1] });
+  f.map['#results'] = [link('https://shopee.tw/Steam-Controller-i.123.456?tracking=1', 'Steam Controller\n$\n5,500'), link('https://shopee.tw/Steam-Controller-i.123.456?tracking=2', '重複'), link('https://evil.example/Steam-Controller-i.123.456', '站外')];
+  const result = runInNewContext(makeScript('results', { limit: 30 }, f.selectors), f.context);
+  assert.equal(result.outcome, 'ok'); assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].url, 'https://shopee.tw/Steam-Controller-i.123.456');
+});
+
+test('結果腳本保留 display contents 的可見子元素，排除真正隱藏商品', () => {
+  const f = domFixture({ pathname: '/search' });
+  f.selectors.results = '#results';
+  const link = (id, childVisible) => ({ href: `https://shopee.tw/Steam-Controller-i.123.${id}`, innerText: 'Steam Controller\n$\n6,000', getClientRects: () => [], querySelectorAll: () => [{ getClientRects: () => childVisible ? [1] : [] }] });
+  f.map['#results'] = [link(456, true), link(789, false)];
+  const result = runInNewContext(makeScript('results', { limit: 30 }, f.selectors), f.context);
+  assert.equal(result.outcome, 'ok'); assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].url, 'https://shopee.tw/Steam-Controller-i.123.456');
+});
+
 test('CLI 可綁定與規劃，不需要瀏覽器套件', async t => {
   const dir = await mkdtemp(join(tmpdir(), 'shopee-cli-')); t.after(() => rm(dir, { recursive: true, force: true }));
   const cli = args => spawnSync(process.execPath, ['scripts/shop.mjs', ...args, '--state-dir', dir], { encoding: 'utf8' });

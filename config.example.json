@@ -1,6 +1,6 @@
 {
   "selectors": {
-    "account": "a[href='/user/account/profile']",
+    "account": ".navbar__username",
     "results": "a[href*='-i.']",
     "productTitle": "h1",
     "quantity": "input[role='spinbutton']",

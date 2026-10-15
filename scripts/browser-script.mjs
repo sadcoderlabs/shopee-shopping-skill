@@ -2,7 +2,8 @@
 function browserStep({ step, args, selectors }) {
   const url = location.href;
   const answer = (outcome, extra = {}) => ({ outcome, url, ...extra });
-  const visible = el => Boolean(el && el.getClientRects().length);
+  // display: contents 的連結本身沒有版面方塊，商品內容仍可能可見。
+  const visible = el => Boolean(el && (el.getClientRects().length || [...el.querySelectorAll('*')].some(child => child.getClientRects().length)));
   const all = key => selectors[key] ? [...document.querySelectorAll(selectors[key])].filter(visible) : [];
   const one = key => { const els = all(key); return els.length === 1 ? els[0] : null; };
   const text = el => (el?.innerText ?? el?.textContent ?? '').trim();
