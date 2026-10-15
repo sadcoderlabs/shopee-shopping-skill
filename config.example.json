@@ -1,0 +1,16 @@
+{
+  "selectors": {
+    "account": "a[href='/user/account/profile']",
+    "results": "a[href*='-i.']",
+    "productTitle": "h1",
+    "quantity": "input[role='spinbutton']",
+    "variantOptions": "button[aria-pressed]",
+    "selectedVariants": "button[aria-pressed='true']",
+    "add": null,
+    "added": null,
+    "cartRows": null,
+    "checkout": null,
+    "checkoutItems": null,
+    "checkoutTotal": null
+  }
+}

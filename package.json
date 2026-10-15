@@ -1,0 +1,13 @@
+{
+  "name": "shopee-shopping-skill",
+  "version": "0.1.0",
+  "private": true,
+  "description": "蝦皮購物技能雛形：腳本操作、同一工作階段接手、下單前確認",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "shop": "node scripts/shop.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check scripts/shop.mjs && node --check scripts/workflow.mjs && node --check scripts/browser-script.mjs"
+  }
+}
