@@ -61,7 +61,7 @@ export class Workflow {
     if (step === 'results') { args.limit ??= 10; if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 30) throw new Stop('INVALID_LIMIT', '最多讀取 1 至 30 件商品。'); }
     if (step === 'open') args.url = urlOf(args.url, true);
     if (step === 'product' && args.url) args.url = urlOf(args.url, true);
-    if (writes.includes(step) && !args.authorized) throw new Stop('AUTHORIZATION_REQUIRED', '須先取得使用者對指定操作的授權。');
+    if (step === 'checkout' && !args.authorized) throw new Stop('AUTHORIZATION_REQUIRED', '須先取得使用者對結帳入口的確認。');
     if (['select', 'add'].includes(step)) {
       args.url = urlOf(args.url, true); args.variants ??= []; args.quantity ??= 1;
       if (!args.title?.trim() || !Array.isArray(args.variants) || args.variants.some(v => typeof v !== 'string' || !v.trim()) || !Number.isInteger(args.quantity) || args.quantity < 1 || args.quantity > 99) throw new Stop('INVALID_PRODUCT', '請提供完整標題、規格與 1 至 99 的數量。');

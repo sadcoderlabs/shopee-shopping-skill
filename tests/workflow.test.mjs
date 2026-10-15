@@ -10,7 +10,7 @@ import { makeScript } from '../scripts/browser-script.mjs';
 
 const item = 'https://shopee.tw/product/123/456';
 const session = 'host:existing-tab:1';
-const intent = { url: item, title: '滑鼠', variants: ['黑色'], quantity: 1, authorized: true };
+const intent = { url: item, title: '滑鼠', variants: ['黑色'], quantity: 1 };
 const stopped = code => e => { assert.equal(e.code, code); return true; };
 async function fixture(t, mode = 'readonly') {
   const dir = await mkdtemp(join(tmpdir(), 'shopee-skill-')); const store = await new Store(dir).open();
@@ -137,9 +137,23 @@ test('程序中斷後先交接，再由使用者確認完全未加入才可解�
   tick(); assert.equal((await flow.plan('add', { ...intent })).status, 'planned');
 });
 
-test('寫入須授權，結帳入口執行後一律交接，沒有送單步驟', async t => {
+test('選規格與加入購物車不需額外授權，仍保留加入意圖防重送', async t => {
+  const { flow, tick } = await fixture(t);
+  const select = await flow.plan('select', { ...intent });
+  assert.equal(select.action.operation, 'select');
+  await flow.record(select.id, { session, url: item, outcome: 'submitted' });
+  tick();
+  const add = await flow.plan('add', { ...intent });
+  assert.equal(add.action.operation, 'add'); assert.ok(flow.state.cartUncertain);
+  await flow.record(add.id, { session, url: item, outcome: 'submitted' });
+  const verify = await flow.plan('verify-add');
+  await flow.record(verify.id, { session, url: item, outcome: 'added' });
+  tick(); await assert.rejects(flow.plan('add', { ...intent }), stopped('DUPLICATE'));
+});
+
+test('結帳入口仍須確認，執行後一律交接，沒有送單步驟', async t => {
   const { flow } = await fixture(t);
-  await assert.rejects(flow.plan('add', { ...intent, authorized: false }), stopped('AUTHORIZATION_REQUIRED'));
+  await assert.rejects(flow.plan('checkout'), stopped('AUTHORIZATION_REQUIRED'));
   await assert.rejects(flow.plan('submit-order'), stopped('INVALID_STEP'));
   const checkout = await flow.plan('checkout', { authorized: true });
   const result = await flow.record(checkout.id, { session, url: 'https://shopee.tw/checkout', outcome: 'before_order' });

@@ -23,6 +23,7 @@ handoff --reason 原因
 resume --session 原分頁識別 --human-confirmed [--resolution applied|not-applied] [--new-round]
 status
 共用：--config config.local.json --state-dir .local
+選規格與加入購物車不需要 --authorized；此參數僅供實驗性的結帳入口使用。
 plan 只產生操作內容，由宿主瀏覽器工具執行。沒有最後下單命令。`);
   } else {
     if (!['bind', 'plan', 'record', 'handoff', 'resume', 'status'].includes(p[0]) || p.length !== (p[0] === 'plan' ? 2 : 1)) throw new Stop('INVALID_COMMAND', '命令無效，請使用 --help。');

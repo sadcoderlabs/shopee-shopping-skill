@@ -60,9 +60,9 @@ node scripts/shop.mjs record --id 'plan 回傳的識別' --result-file .local/re
 | 讀取結果 | `plan results --limit 10`；保留可見價格、評價及運費文字，不假定完整性 |
 | 開啟商品 | `plan open --url '實際商品網址'` |
 | 核對商品 | `plan product --url '實際商品網址'`；腳本核對商品識別並讀取重要資訊，缺漏才由宿主觀察校準，詳見 [商品解析](product-parsing.md) |
-| 選規格與數量 | `plan select --url '實際商品網址' --title '完整標題' --variant '黑色' --quantity 1 --authorized`；多個規格重複指定 `--variant` |
+| 選規格與數量 | `plan select --url '實際商品網址' --title '完整標題' --variant '黑色' --quantity 1`；多個規格重複指定 `--variant` |
 | 再次核對 | `plan product`；確認網址、標題、選取規格及數量皆正確 |
-| 加入一次 | `plan add`，參數同 `select`；必須有使用者對指定商品的授權 |
+| 加入一次 | `plan add`，參數同 `select`；依購物需求核對商品後直接執行，不需要額外授權或確認 |
 | 確認加入 | `plan verify-add`；立即觀察成功提示，沒有提示就交接人工檢查，不重送 |
 | 開啟購物車 | `plan cart`，再 `plan cart-read`；由使用者勾選本次商品、處理優惠及配送 |
 | 進入結帳 | `plan checkout --authorized`；只在購物車且確認本次商品後執行 |
