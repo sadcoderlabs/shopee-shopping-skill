@@ -199,8 +199,53 @@ test('商品腳本讀取完整價格範圍、描述及規格，不混入其他�
   assert.equal(f.clicks(), 0);
   f.map.section.push(section('商品描述', '不能唯一確認'));
   assert.equal(runInNewContext(makeScript('product', {}, f.selectors), f.context).description, null);
+  f.map.section = [section('商品描述', '長'.repeat(20001))];
+  const long = runInNewContext(makeScript('product', {}, f.selectors), f.context);
+  assert.equal(long.description.length, 20000); assert.ok(long.truncatedFields.includes('description'));
   f.map['#price'] = [];
   assert.equal(runInNewContext(makeScript('product', {}, f.selectors), f.context).outcome, 'page_changed');
+});
+
+test('商品網址須與指定商品相符，允許同一商品的兩種網址格式', async t => {
+  const f = domFixture();
+  assert.equal(runInNewContext(makeScript('product', { url: 'https://shopee.tw/Mouse-i.123.456' }, f.selectors), f.context).outcome, 'ok');
+  assert.equal(runInNewContext(makeScript('product', { url: 'https://shopee.tw/product/123/999' }, f.selectors), f.context).outcome, 'page_changed');
+  const { flow } = await fixture(t);
+  await assert.rejects(flow.plan('product', { url: 'https://evil.example/product/123/456' }), stopped('INVALID_URL'));
+});
+
+test('庫存與購買上限分開判斷，未顯示庫存時不能猜測', () => {
+  const f = domFixture(); f.selectors.stock = '#stock'; f.selectors.purchaseMessages = '#messages';
+  const label = innerText => ({ innerText, getClientRects: () => [1] });
+  const read = () => runInNewContext(makeScript('product', {}, f.selectors), f.context);
+  f.map['#stock'] = [label('數量\n還剩1件')];
+  let result = read(); assert.equal(result.stock.status, 'in_stock'); assert.equal(result.stock.quantity, 1); assert.equal(result.stock.scope, 'selected_variant'); assert.equal(result.purchase.status, 'ready');
+  f.map['#messages'] = [label('已達到購買上限')];
+  result = read(); assert.equal(result.stock.status, 'in_stock'); assert.equal(result.purchase.status, 'quantity_limited'); assert.equal(result.purchase.addButtonEnabled, true);
+  f.map['#messages'] = [label('此商品無法購買')]; assert.equal(read().purchase.status, 'restricted');
+  f.map['#stock'] = [label('還剩0件')]; result = read(); assert.equal(result.stock.status, 'out_of_stock'); assert.equal(result.purchase.status, 'unavailable');
+  f.map['#stock'] = [label('商品已售完')]; assert.equal(read().stock.status, 'out_of_stock');
+  f.map['#stock'] = [label('尚有庫存')]; assert.equal(read().stock.quantity, null); assert.equal(read().stock.status, 'in_stock');
+  f.map['#stock'] = []; f.map['#messages'] = []; result = read(); assert.equal(result.stock.status, 'unknown'); assert.equal(result.stock.quantity, null); assert.equal(result.purchase.status, 'unknown'); assert.ok(result.missingFields.includes('stock'));
+});
+
+test('結構化規格及多組選項，不能把選一組當成全部選完', () => {
+  const f = domFixture(); f.selectors.productSections = 'section'; f.selectors.stock = '#stock';
+  const label = innerText => ({ innerText, getClientRects: () => [1], getAttribute: () => null });
+  const capacity = label('64GB'); f.map['#variants'].push(capacity);
+  const sections = (heading, options = [], fields = []) => ({ ...label(heading), querySelector: () => label(heading), querySelectorAll: selector => selector === 'h3' ? fields : options });
+  const condition = { ...label('商品保存狀況'), nextElementSibling: label('二手') };
+  const brand = { ...label('品牌'), nextElementSibling: label('Apple') };
+  f.map.section = [sections('顏色', [f.map['#variants'][0]]), sections('容量', [capacity]), sections('商品規格', [], [condition, brand])];
+  f.map['#stock'] = [label('還剩5件')];
+  const result = runInNewContext(makeScript('product', {}, f.selectors), f.context);
+  assert.equal(result.variantGroups.length, 2); assert.equal(result.purchase.status, 'needs_selection'); assert.equal(result.stock.scope, 'unselected_variants');
+  assert.equal(result.attributes[0].name, '商品保存狀況'); assert.equal(result.attributes[0].value, '二手'); assert.equal(result.attributes[1].value, 'Apple');
+  const outer = { ...sections('運送', f.map['#variants']), contains: el => f.map.section.includes(el) };
+  f.map.section = [outer, ...f.map.section];
+  const stockInner = f.map['#stock'][0]; f.map['#stock'] = [{ ...label('外層其他文字'), contains: el => el === stockInner }, stockInner];
+  const nested = runInNewContext(makeScript('product', {}, f.selectors), f.context);
+  assert.equal(nested.variantGroups.length, 2); assert.equal(nested.variantGroups[0].name, '顏色'); assert.equal(nested.stock.quantity, 5);
 });
 
 test('頁面腳本：加入核對網址、規格、數量與按鈕，成功只點一次', () => {

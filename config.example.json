@@ -8,6 +8,8 @@
     "price": null,
     "productSections": "section",
     "quantity": "input[role='spinbutton']",
+    "stock": "section:has(input[role='spinbutton'])",
+    "purchaseMessages": null,
     "variantOptions": "button[aria-pressed], button.selection-box-unselected, button.selection-box-selected",
     "selectedVariants": "button[aria-pressed='true'], button.selection-box-selected",
     "add": null,

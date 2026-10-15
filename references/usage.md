@@ -59,7 +59,7 @@ node scripts/shop.mjs record --id 'plan 回傳的識別' --result-file .local/re
 | 搜尋 | `plan search --query '無線滑鼠'`；以原頁面觀察到的搜尋欄或搜尋連結導航至預期網址，確認輸入後再送出，不直接假定已完成 |
 | 讀取結果 | `plan results --limit 10`；保留可見價格、評價及運費文字，不假定完整性 |
 | 開啟商品 | `plan open --url '實際商品網址'` |
-| 核對商品 | `plan product`；另以宿主觀察確認價格、庫存及所有規格群組 |
+| 核對商品 | `plan product --url '實際商品網址'`；腳本核對商品識別並讀取重要資訊，缺漏才由宿主觀察校準，詳見 [商品解析](product-parsing.md) |
 | 選規格與數量 | `plan select --url '實際商品網址' --title '完整標題' --variant '黑色' --quantity 1 --authorized`；多個規格重複指定 `--variant` |
 | 再次核對 | `plan product`；確認網址、標題、選取規格及數量皆正確 |
 | 加入一次 | `plan add`，參數同 `select`；必須有使用者對指定商品的授權 |

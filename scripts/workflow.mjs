@@ -60,6 +60,7 @@ export class Workflow {
     }
     if (step === 'results') { args.limit ??= 10; if (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 30) throw new Stop('INVALID_LIMIT', '最多讀取 1 至 30 件商品。'); }
     if (step === 'open') args.url = urlOf(args.url, true);
+    if (step === 'product' && args.url) args.url = urlOf(args.url, true);
     if (writes.includes(step) && !args.authorized) throw new Stop('AUTHORIZATION_REQUIRED', '須先取得使用者對指定操作的授權。');
     if (['select', 'add'].includes(step)) {
       args.url = urlOf(args.url, true); args.variants ??= []; args.quantity ??= 1;
